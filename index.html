@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <title>香蕉氣象參數型保單試算工具</title>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; max-width: 900px; margin: auto; }
+    table, th, td { border: 1px solid #ccc; border-collapse: collapse; padding: 8px; text-align: center; }
+    th { background-color: #f2f2f2; }
+    input[type="number"] { width: 80px; }
+    .results { margin-top: 20px; font-weight: bold; }
+  </style>
+</head>
+<body>
+  <h2>香蕉氣象參數型保單試算工具</h2>
+
+  <label>保險金額（元）：<input type="number" id="insuredAmount" value="400000" /></label>
+  <br><br>
+  <label>總保費（元）：<input type="number" id="totalPremium" value="8000" /></label>
+  <br><br>
+  <label>總颱風次數：<input type="number" id="totalTyphoonCount" value="35" /></label>
+
+  <h3>風級資料輸入（7 級至 18+ 級）</h3>
+  <table>
+    <thead>
+      <tr>
+        <th>風級</th>
+        <th>出現次數</th>
+        <th>賠付比例 (%)</th>
+      </tr>
+    </thead>
+    <tbody id="windTable">
+      <!-- 自動產生風級輸入列 -->
+    </tbody>
+  </table>
+  <br>
+  <button onclick="calculate()">計算</button>
+
+  <div class="results" id="results"></div>
+
+  <script>
+    const windLevels = [
+      "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18+"
+    ];
+
+    const tbody = document.getElementById("windTable");
+    windLevels.forEach(level => {
+      const row = document.createElement("tr");
+      row.innerHTML = `
+        <td>${level} 級</td>
+        <td><input type="number" step="1" value="0" class="count" /></td>
+        <td><input type="number" value="0" class="payout" /></td>
+      `;
+      tbody.appendChild(row);
+    });
+
+    function calculate() {
+      const insuredAmount = parseFloat(document.getElementById('insuredAmount').value);
+      const totalPremium = parseFloat(document.getElementById('totalPremium').value);
+      const totalTyphoonCount = parseFloat(document.getElementById('totalTyphoonCount').value);
+
+      const rows = document.querySelectorAll('#windTable tr');
+      let purePremium = 0;
+      let breakdown = [];
+
+      rows.forEach((row, i) => {
+        const count = parseFloat(row.querySelector('.count').value);
+        const payoutRate = parseFloat(row.querySelector('.payout').value);
+        const freq = count / totalTyphoonCount;
+
+        const expectedPayout = freq * (payoutRate / 100) * insuredAmount;
+        purePremium += expectedPayout;
+
+        breakdown.push(`${windLevels[i]} 級風：出現 ${count} 次，頻率 ${(freq * 100).toFixed(1)}%，預期賠付 ${expectedPayout.toFixed(0)} 元`);
+      });
+
+      const lossRatio = purePremium / totalPremium;
+
+      const results = document.getElementById('results');
+      results.innerHTML = `
+        <p>👉 預期純保費：<strong>${purePremium.toFixed(0)} 元</strong></p>
+        <p>👉 損失率 (Loss Ratio)：<strong>${(lossRatio * 100).toFixed(1)}%</strong></p>
+        <p>📊 各風級預期理賠金額：</p>
+        <ul>${breakdown.map(x => `<li>${x}</li>`).join('')}</ul>
+      `;
+    }
+  </script>
+</body>
+</html>
