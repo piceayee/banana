@@ -1,129 +1,79 @@
-// 試算工具 - 年化保費與欄位優化
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <title>香蕉氣象參數型保險試算工具</title>
+  <style>
+    body { font-family: sans-serif; padding: 2em; background: #f9f9f9; }
+    input { padding: 4px; width: 80px; margin: 2px; }
+    table { border-collapse: collapse; margin-top: 1em; }
+    td, th { border: 1px solid #ccc; padding: 6px; text-align: center; }
+    h2 { margin-bottom: 0.5em; }
+  </style>
+</head>
+<body>
+  <h2>🍌 香蕉氣象參數型保險試算工具</h2>
+  <div>
+    <label>歷史颱風總次數：<input id="totalTyphoons" type="number" /></label>
+    <label>歷史年數：<input id="years" type="number" /></label>
+    <label>保險金額（元）：<input id="sumInsured" type="number" /></label>
+  </div>
 
-import { useState } from 'react';
+  <table>
+    <thead>
+      <tr>
+        <th>級風</th>
+        <th>賠付比例 (%)</th>
+        <th>該級風出現次數</th>
+      </tr>
+    </thead>
+    <tbody id="windTable">
+      <!-- 動態產生 -->
+    </tbody>
+  </table>
 
-export default function InsuranceCalculator() {
-  const [totalTyphoons, setTotalTyphoons] = useState('');
-  const [years, setYears] = useState('');
-  const [sumInsured, setSumInsured] = useState('');
-  const [frequencies, setFrequencies] = useState(Array(12).fill(''));
-  const [payoutRates, setPayoutRates] = useState(Array(12).fill(''));
+  <button onclick="calculate()">計算</button>
 
-  const handleFrequencyChange = (index, value) => {
-    const newFreqs = [...frequencies];
-    newFreqs[index] = value;
-    setFrequencies(newFreqs);
-  };
+  <h3>計算結果</h3>
+  <div id="result">尚未計算</div>
 
-  const handlePayoutRateChange = (index, value) => {
-    const newRates = [...payoutRates];
-    newRates[index] = value;
-    setPayoutRates(newRates);
-  };
+  <script>
+    const levels = Array.from({ length: 12 }, (_, i) => i + 7); // 7~18級風
 
-  const calculate = () => {
-    const total = parseFloat(totalTyphoons) || 0;
-    const yearCount = parseFloat(years) || 1;
-    const insured = parseFloat(sumInsured) || 0;
-    const avgTyphoonPerYear = total / yearCount;
+    const windTable = document.getElementById("windTable");
+    levels.forEach(level => {
+      const row = document.createElement("tr");
+      row.innerHTML = `
+        <td>${level}</td>
+        <td><input type="number" id="rate-${level}" placeholder="%" /></td>
+        <td><input type="number" id="freq-${level}" placeholder="次數" /></td>
+      `;
+      windTable.appendChild(row);
+    });
 
-    let expectedLossPerTyphoon = 0;
-    for (let i = 0; i < frequencies.length; i++) {
-      const freq = parseFloat(frequencies[i]) || 0;
-      const rate = parseFloat(payoutRates[i]) || 0;
-      const payout = (insured * rate) / 100;
-      expectedLossPerTyphoon += (freq / total) * payout;
+    function calculate() {
+      const totalTyphoons = parseFloat(document.getElementById("totalTyphoons").value) || 0;
+      const years = parseFloat(document.getElementById("years").value) || 1;
+      const sumInsured = parseFloat(document.getElementById("sumInsured").value) || 0;
+
+      const avgTyphoonsPerYear = totalTyphoons / years;
+      let expectedLossPerTyphoon = 0;
+
+      levels.forEach(level => {
+        const rate = parseFloat(document.getElementById(`rate-${level}`).value) || 0;
+        const freq = parseFloat(document.getElementById(`freq-${level}`).value) || 0;
+        const payout = (sumInsured * rate) / 100;
+        expectedLossPerTyphoon += (freq / totalTyphoons) * payout;
+      });
+
+      const annualPurePremium = avgTyphoonsPerYear * expectedLossPerTyphoon;
+
+      document.getElementById("result").innerHTML = `
+        ➤ 年平均颱風數：${avgTyphoonsPerYear.toFixed(2)}<br/>
+        ➤ 每次颱風平均損失：${expectedLossPerTyphoon.toFixed(0)} 元<br/>
+        ➤ 年純保費：${annualPurePremium.toFixed(0)} 元
+      `;
     }
-
-    const annualPurePremium = avgTyphoonPerYear * expectedLossPerTyphoon;
-
-    return {
-      avgTyphoonPerYear,
-      expectedLossPerTyphoon,
-      annualPurePremium,
-    };
-  };
-
-  const result = calculate();
-
-  return (
-    <div className="p-4 max-w-4xl mx-auto">
-      <h1 className="text-2xl font-bold mb-4">香蕉氣象參數型保險試算工具</h1>
-
-      <div className="grid grid-cols-2 gap-4 mb-4">
-        <label>
-          歷史颱風總次數：
-          <input
-            type="number"
-            value={totalTyphoons}
-            onChange={(e) => setTotalTyphoons(e.target.value)}
-            className="border p-2 w-full"
-          />
-        </label>
-        <label>
-          歷史年份數：
-          <input
-            type="number"
-            value={years}
-            onChange={(e) => setYears(e.target.value)}
-            className="border p-2 w-full"
-          />
-        </label>
-        <label>
-          保險金額（元）：
-          <input
-            type="number"
-            value={sumInsured}
-            onChange={(e) => setSumInsured(e.target.value)}
-            className="border p-2 w-full"
-          />
-        </label>
-      </div>
-
-      <div className="overflow-x-auto">
-        <table className="table-auto w-full border">
-          <thead>
-            <tr>
-              <th className="border px-2">級風</th>
-              <th className="border px-2">賠付比例 (%)</th>
-              <th className="border px-2">該級風出現次數</th>
-            </tr>
-          </thead>
-          <tbody>
-            {Array.from({ length: 12 }).map((_, i) => (
-              <tr key={i}>
-                <td className="border px-2 text-center">{i + 7}</td>
-                <td className="border px-2">
-                  <input
-                    type="number"
-                    value={payoutRates[i]}
-                    onChange={(e) => handlePayoutRateChange(i, e.target.value)}
-                    className="w-full p-1 border"
-                    placeholder="%"
-                  />
-                </td>
-                <td className="border px-2">
-                  <input
-                    type="number"
-                    value={frequencies[i]}
-                    onChange={(e) => handleFrequencyChange(i, e.target.value)}
-                    className="w-full p-1 border"
-                    placeholder="次數"
-                  />
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-
-      <div className="mt-4 p-4 border rounded bg-gray-50">
-        <p>➤ 年均颱風數：{result.avgTyphoonPerYear.toFixed(2)}</p>
-        <p>➤ 每次颱風平均損失：{result.expectedLossPerTyphoon.toFixed(0)} 元</p>
-        <p className="font-bold text-red-600">
-          ➤ 年純保費：{result.annualPurePremium.toFixed(0)} 元
-        </p>
-      </div>
-    </div>
-  );
-}
+  </script>
+</body>
+</html>
